@@ -32,6 +32,7 @@ import ssl
 import sys
 import threading
 import time
+import traceback
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -715,7 +716,7 @@ def _get_container_pid_map():
     descendentes (subarvore de /proc/<pid>/task/<tid>/children).
     Cache recalculado a cada PANEL_PROBE_INTERVAL segundos.
     """
-    global _PID_MAP_TIME
+    global _PID_MAP_CACHE, _PID_MAP_TIME
     now = time.time()
     with _PID_MAP_LOCK:
         if now - _PID_MAP_TIME < PANEL_PROBE_INTERVAL and _PID_MAP_CACHE:
@@ -948,12 +949,19 @@ class Handler(BaseHTTPRequestHandler):
             self._respond(200, "text/html; charset=utf-8", body)
             return
         if path == "/api/icon":
-            self._handle_icon()
+            try:
+                self._handle_icon()
+            except Exception as exc:
+                print("erro em /api/icon: %s" % exc, file=sys.stderr, flush=True)
+                traceback.print_exc(file=sys.stderr)
+                self._json(500, {"error": str(exc)})
             return
         if path == "/api/ports":
             try:
                 self._json(200, build_payload())
             except Exception as exc:  # nunca derruba o servidor
+                print("erro em /api/ports: %s" % exc, file=sys.stderr, flush=True)
+                traceback.print_exc(file=sys.stderr)
                 self._json(500, {"error": str(exc)})
             return
         self._json(404, {"error": "not found"})
