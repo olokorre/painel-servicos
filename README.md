@@ -14,6 +14,16 @@ atualiza a cada 5 segundos. Serviço novo aparece sozinho, sem reiniciar nem
 editar nada. Pode rodar nativo no host (via systemd) ou em container Docker
 com `network_mode: host` e `pid: host`.
 
+![Interface do painel-servicos em modo hub](docs/painel-hub.png)
+
+*Print real de uma VM de laboratório. Em cima, os serviços que respondem em HTTP
+viram cartões com título da página, porta, processo/container responsável e
+status HTTP — quando o serviço não publica favicon, o painel cai na inicial do
+título (os `R`, `E`, `L`, `P` da imagem). Abaixo, a seção com os containers
+Docker e as portas publicadas. O alternador `Mostrar tudo (modo técnico)` revela
+a tabela completa (endereço, PID, processo, container) e `Pausar` congela a
+atualização automática.*
+
 ## Requisitos
 
 - Linux com `/proc` montado (leitura de `/proc/net/tcp`, `/proc/net/tcp6`,
