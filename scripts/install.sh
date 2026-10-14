@@ -136,6 +136,13 @@ if [ ! -f "$ENV_FILE" ]; then
     chmod 600 "$ENV_FILE"
     sed -i 's|^PANEL_CACHE_FILE=|PANEL_CACHE_FILE=/var/cache/painel-servicos/cache.json|' "$ENV_FILE"
     echo "/etc/painel-servicos/env criado a partir do .env.example."
+    # aviso de exposicao sem senha na primeira instalacao
+    EFFECTIVE_BIND="${BIND:-0.0.0.0}"
+    if [ "${EFFECTIVE_BIND}" = "0.0.0.0" ] && \
+       grep -q '^PANEL_PASSWORD=$' "$ENV_FILE" 2>/dev/null; then
+        echo "aviso: painel exposto em todas as interfaces e SEM senha (PANEL_PASSWORD vazio em $ENV_FILE); qualquer" >&2
+        echo "um que alcance a porta vera portas, processos e linhas de comando do host." >&2
+    fi
 else
     echo "/etc/painel-servicos/env ja existe: nao sobrescrito."
     if [ -n "$PORT" ] || [ -n "$BIND" ]; then
@@ -168,13 +175,24 @@ else
     echo "painel-servicos habilitado e iniciado."
 fi
 
-# ---- URL de acesso ----
+# ---- determina porta efetiva ----
 EFFECTIVE_PORT="$PORT"
 if [ -z "$EFFECTIVE_PORT" ]; then
     EFFECTIVE_PORT=$(sed -n 's/^PANEL_PORT=//p' "$ENV_FILE" 2>/dev/null | tail -n 1)
 fi
 [ -z "$EFFECTIVE_PORT" ] && EFFECTIVE_PORT=8090
 
+# ---- dica de firewall (firewalld) ----
+if command -v firewall-cmd >/dev/null 2>&1; then
+    if firewall-cmd --state 2>/dev/null | grep -q running; then
+        echo ""
+        echo "Libere a porta no firewall se necessario:"
+        echo "  firewall-cmd --permanent --add-port=$EFFECTIVE_PORT/tcp"
+        echo "  firewall-cmd --reload"
+    fi
+fi
+
+# ---- URL de acesso ----
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 [ -z "$IP" ] && IP=$(hostname)
 

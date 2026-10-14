@@ -63,6 +63,81 @@ O container precisa de `network_mode: host`, `pid: host` e `cap_add: SYS_PTRACE`
 para enxergar `/proc` e sockets do host. O código-fonte em `app/` é montado
 read-only — editar no host e reiniciar o container é suficiente.
 
+### 3. RHEL / Rocky / Alma (systemd nativo)
+
+**Requisitos:** `python3` (RHEL 8/9 já vem com Python 3.9+; se faltar,
+`sudo dnf install -y python3`). systemd. Docker é opcional (necessário apenas
+para listar containers). Zero dependências Python adicionais.
+
+**Instalação:**
+```sh
+git clone <url-do-repositorio> painel-servicos
+cd painel-servicos
+sudo scripts/install.sh                  # porta/bind default
+sudo scripts/install.sh --port 8080      # porta customizada
+sudo scripts/install.sh --no-start       # instala sem habilitar
+sudo scripts/install.sh --uninstall      # remove (preserva /etc/painel-servicos)
+```
+O instalador ajusta automaticamente o caminho do interpretador se `python3`
+não estiver em `/usr/bin/python3`.
+
+**Firewalld (padrão na família RHEL):** após a instalação, libere a porta na
+rede interna:
+```sh
+sudo firewall-cmd --permanent --add-port=8090/tcp
+sudo firewall-cmd --reload
+```
+Se a interface interna estiver em outra zona (ex.: `internal`), especifique-a:
+`--zone=internal --add-port=8090/tcp`. Em rede interna/VPN, mantenha o acesso
+restrito à rede da empresa; se um dia expor, ligue `PANEL_PASSWORD` **e** use
+um proxy reverso com TLS na frente.
+
+**SELinux:** a unit em `/etc/systemd/system` roda em domínio
+`unconfined_service_t` (sem restrição própria), então normalmente não precisa
+de nenhuma configuração extra. Se o serviço não subir e o log mostrar negação,
+diagnostique com:
+```sh
+sudo ausearch -m avc -ts recent
+```
+Se houver negações, gere e carregue uma política local:
+```sh
+sudo ausearch -m avc -ts recent | audit2allow -M painel-servicos
+sudo semodule -i painel-servicos.pp
+```
+Isso concede permissão extra ao serviço — revise antes de aplicar. Para testar
+se o SELinux é a causa, desabilite temporariamente com
+`sudo setenforce 0` (e reative com `sudo setenforce 1`).
+
+**Autenticação (no caminho systemd):** edite `/etc/painel-servicos/env`,
+defina `PANEL_PASSWORD` (e opcionalmente `PANEL_USER`) e reinicie:
+```sh
+sudo systemctl restart painel-servicos
+```
+O navegador pedirá usuário/senha (HTTP Basic). O endpoint `/healthz` continua
+aberto para healthcheck.
+
+**Operação:**
+```sh
+systemctl status painel-servicos         # status do serviço
+systemctl restart painel-servicos        # reinicia (recarrega config + código)
+journalctl -u painel-servicos -f         # logs em tempo real
+```
+O cache fica em `/var/cache/painel-servicos/cache.json` (se `PANEL_CACHE_FILE`
+não foi alterado).
+
+**Passo a passo (copia e cola):**
+```sh
+sudo dnf install -y python3 git
+git clone <url-do-repositorio> /opt/painel-servicos-repo
+cd /opt/painel-servicos-repo
+sudo scripts/install.sh
+sudo firewall-cmd --permanent --add-port=8090/tcp && sudo firewall-cmd --reload
+systemctl is-active painel-servicos
+# Abra http://<ip-do-host>:8090/ no navegador
+# (opcional) sudo editor /etc/painel-servicos/env  # defina PANEL_PASSWORD
+sudo systemctl restart painel-servicos
+```
+
 ## Variáveis de ambiente
 
 | Variável | Default | Descrição |
