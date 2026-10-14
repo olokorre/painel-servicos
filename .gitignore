@@ -2,3 +2,7 @@
 *.log
 __pycache__/
 .DS_Store
+# env local usado pelo docker compose (tem segredos: PANEL_PASSWORD)
+.env
+.env.*
+!*.env.example

@@ -1,0 +1,25 @@
+[Unit]
+Description=Painel de servicos (portas/proc/docker)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=painel
+Group=painel
+EnvironmentFile=-/etc/painel-servicos/env
+ExecStart=/usr/bin/python3 /opt/painel-servicos/app/server.py
+Restart=on-failure
+RestartSec=3
+# CAP_SYS_PTRACE: resolucao de PID via /proc (ptrace_scope=1).
+# CAP_DAC_READ_SEARCH: /proc/<pid>/fd de processos de outros usuarios e dr-x------ do dono;
+# sem esta capability o painel lista a porta mas nao o processo (ex.: servicos rodando como root).
+AmbientCapabilities=CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
+WorkingDirectory=/opt/painel-servicos
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

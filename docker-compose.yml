@@ -1,7 +1,7 @@
 services:
-  vm-panel:
+  painel-servicos:
     image: python:3.12-alpine
-    container_name: vm-panel
+    container_name: painel-servicos
     restart: unless-stopped
     network_mode: host
     pid: host
@@ -10,8 +10,12 @@ services:
     working_dir: /app
     command: ["python", "/app/server.py"]
     environment:
-      - PANEL_PORT=8090
-      - DOCKER_SOCKET=/var/run/docker.sock
+      - PANEL_PORT=${PANEL_PORT:-8090}
+      - PANEL_BIND=${PANEL_BIND:-0.0.0.0}
+      - DOCKER_SOCKET=${DOCKER_SOCKET:-/var/run/docker.sock}
+      - PANEL_USER=${PANEL_USER:-admin}
+      - PANEL_PASSWORD=${PANEL_PASSWORD:-}
+      - PANEL_HTTPS_PORTS=${PANEL_HTTPS_PORTS:-443,8443,9443}
     volumes:
       - ./app:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
