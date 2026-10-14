@@ -315,6 +315,11 @@ _CURRENT_PORTS = set()
 _CURRENT_PORTS_LOCK = threading.Lock()
 _CACHE_DISK_OK = True
 _LAST_PROBE_LOG = None
+_PID_MAP_CACHE = {}
+_PID_MAP_LOCK = threading.Lock()
+_PID_MAP_TIME = 0.0
+_PID_EXPAND_DEPTH = 5
+_PID_EXPAND_MAX = 500
 
 
 def _now_iso():
@@ -703,6 +708,84 @@ def _cache_load():
             _PROBE_CACHE[port] = _entry_from_disk(data)
 
 
+def _get_container_pid_map():
+    """Mapa pid do host -> nome do container, via /containers/<id>/json.
+
+    Consulta cada container em execucao, le State.Pid e expande para
+    descendentes (subarvore de /proc/<pid>/task/<tid>/children).
+    Cache recalculado a cada PANEL_PROBE_INTERVAL segundos.
+    """
+    global _PID_MAP_TIME
+    now = time.time()
+    with _PID_MAP_LOCK:
+        if now - _PID_MAP_TIME < PANEL_PROBE_INTERVAL and _PID_MAP_CACHE:
+            return _PID_MAP_CACHE
+
+    result = {}
+    try:
+        containers = docker_containers()
+        version = _docker_api_version()
+        for cont in containers:
+            if cont["state"] != "running":
+                continue
+            cid = cont["id"]
+            if not cid:
+                continue
+            try:
+                if version:
+                    path = "/v%s/containers/%s/json" % (version, cid)
+                else:
+                    path = "/containers/%s/json" % cid
+                conn = UnixHTTPConnection(DOCKER_SOCKET)
+                conn.request("GET", path, headers={"Host": "localhost"})
+                resp = conn.getresponse()
+                raw = resp.read()
+                conn.close()
+                if resp.status != 200:
+                    continue
+                info = json.loads(raw.decode("utf-8", "replace"))
+                pid = (info.get("State") or {}).get("Pid")
+                if not pid or pid <= 0:
+                    continue
+                name = cont["name"]
+                frontier = [pid]
+                processed = set(frontier)
+                result[pid] = name
+                for _ in range(_PID_EXPAND_DEPTH):
+                    if not frontier or len(processed) >= _PID_EXPAND_MAX:
+                        break
+                    nxt = []
+                    for pp in frontier:
+                        try:
+                            with open("/proc/%d/task/%d/children" % (pp, pp), "r") as fh:
+                                child_line = fh.read().strip()
+                        except OSError:
+                            continue
+                        if not child_line:
+                            continue
+                        for cp_str in child_line.split():
+                            try:
+                                cp = int(cp_str)
+                            except ValueError:
+                                continue
+                            if cp not in processed and cp > 0:
+                                processed.add(cp)
+                                result[cp] = name
+                                nxt.append(cp)
+                                if len(processed) >= _PID_EXPAND_MAX:
+                                    break
+                    frontier = nxt
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    with _PID_MAP_LOCK:
+        _PID_MAP_CACHE = result
+        _PID_MAP_TIME = now
+    return result
+
+
 def _http_snapshot(port):
     with _PROBE_LOCK:
         entry = _PROBE_CACHE.get(port)
@@ -739,6 +822,8 @@ def build_payload():
                     return owner
         return None
 
+    pid_map = _get_container_pid_map()
+
     items = []
     for record in listening_tcp():
         pids = sorted(inode_pids.get(record["inode"], ()))
@@ -747,6 +832,12 @@ def build_payload():
         cmdline = _read_cmdline(main_pid) if main_pid else None
         port = record["port"]
         container = public_owner.get(port)
+        if container is None and pids:
+            for pid in pids:
+                c = pid_map.get(pid)
+                if c:
+                    container = c
+                    break
         if container is None and pids:
             container = _cgroup_owner(pids)
         items.append({
