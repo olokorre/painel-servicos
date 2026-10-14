@@ -1,0 +1,4 @@
+# nada além dos arquivos do painel é gerado/versionado
+*.log
+__pycache__/
+.DS_Store

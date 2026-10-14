@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VM Panel – lab-deploy</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1b1f26;
+    --panel-2: #22272f;
+    --line: #2e343d;
+    --fg: #d7dce3;
+    --muted: #8b949e;
+    --accent: #4f9cf0;
+    --err: #7a1f1f;
+    --ok: #26323b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    padding: 16px 18px 10px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  h1 .sub { color: var(--muted); font-weight: 400; }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .badge {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1px 9px;
+    color: var(--fg);
+  }
+  button {
+    background: var(--panel-2);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  .err {
+    margin-top: 10px;
+    padding: 7px 11px;
+    border-radius: 6px;
+    background: var(--err);
+    color: #ffd9d9;
+    font-size: 13px;
+  }
+  main { padding: 16px 18px 40px; }
+  section { margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+  input[type=search] {
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 10px;
+    padding: 7px 11px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 13px;
+  }
+  input[type=search]:focus { outline: none; border-color: var(--accent); }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--panel); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .local, .muted { color: var(--muted); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .cname { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; margin-bottom: 4px; }
+  .state { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .img { font-size: 12px; word-break: break-all; }
+  .ports { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    display: inline-block;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 2px 9px;
+    font-size: 12px;
+  }
+  .pill.internal { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>VM Panel <span class="sub">lab-deploy</span></h1>
+  <div class="meta">
+    <span id="gen">carregando…</span>
+    <span id="count" class="badge">—</span>
+    <button id="toggle" type="button">Pausar</button>
+  </div>
+  <div id="err" class="err" hidden></div>
+</header>
+
+<main>
+  <section>
+    <input id="q" type="search" placeholder="filtrar por porta, processo ou container" autocomplete="off">
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Porta</th><th>Endereço</th><th>Proto</th><th>Processo</th><th>PID</th><th>Container</th><th>Abrir</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Containers Docker</h2>
+    <div id="containers" class="cards"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var items = [];
+  var containers = [];
+  var paused = false;
+
+  var elRows = document.getElementById("rows");
+  var elContainers = document.getElementById("containers");
+  var elGen = document.getElementById("gen");
+  var elCount = document.getElementById("count");
+  var elErr = document.getElementById("err");
+  var elQuery = document.getElementById("q");
+  var elToggle = document.getElementById("toggle");
+
+  function make(tag, text, cls) {
+    var node = document.createElement(tag);
+    if (cls) { node.className = cls; }
+    node.textContent = (text === null || text === undefined) ? "" : String(text);
+    return node;
+  }
+
+  function schemeFor(port) {
+    return (port === 443 || port === 8443) ? "https" : "http";
+  }
+
+  function openLink(port, scheme, label) {
+    var a = document.createElement("a");
+    a.href = scheme + "://" + window.location.hostname + ":" + port + "/";
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = label || "Abrir";
+    return a;
+  }
+
+  function renderRows() {
+    var query = (elQuery.value || "").trim().toLowerCase();
+    elRows.textContent = "";
+    items.forEach(function (item) {
+      var haystack = [
+        item.port, item.process, item.container, item.address, item.family
+      ].join(" ").toLowerCase();
+      if (query && haystack.indexOf(query) === -1) { return; }
+
+      var tr = document.createElement("tr");
+      tr.appendChild(make("td", item.port, "mono"));
+      var wildcard = item.address === "0.0.0.0" || item.address === "::";
+      tr.appendChild(make("td", item.address || "—", wildcard ? "mono muted" : "mono"));
+      tr.appendChild(make("td", item.proto || "tcp"));
+      tr.appendChild(make("td", item.process || "—"));
+      tr.appendChild(make("td", (item.pids && item.pids.length) ? item.pids.join(", ") : "—", "mono"));
+      tr.appendChild(make("td", item.container || "—"));
+
+      var cell = document.createElement("td");
+      if (item.exposed) {
+        cell.appendChild(openLink(item.port, item.scheme || schemeFor(item.port)));
+      } else {
+        cell.appendChild(make("span", "só localhost", "local"));
+      }
+      tr.appendChild(cell);
+      elRows.appendChild(tr);
+    });
+  }
+
+  function renderContainers() {
+    elContainers.textContent = "";
+    if (!containers.length) {
+      elContainers.appendChild(make("p", "nenhum container encontrado", "muted"));
+      return;
+    }
+    containers.forEach(function (container) {
+      var card = document.createElement("div");
+      card.className = "card";
+
+      var head = document.createElement("div");
+      head.className = "cname";
+      head.appendChild(make("span", container.name));
+      head.appendChild(make("span", container.state || "", "state"));
+      card.appendChild(head);
+
+      card.appendChild(make("div", container.image || "", "muted img"));
+      card.appendChild(make("div", container.status || "", "muted"));
+
+      var ports = document.createElement("div");
+      ports.className = "ports";
+      var list = container.ports || [];
+      var shown = false;
+      list.forEach(function (port) {
+        shown = true;
+        if (port.public) {
+          var link = openLink(port.public, schemeFor(port.public),
+                              port.public + "/" + (port.type || "tcp"));
+          link.className = "pill";
+          ports.appendChild(link);
+        } else {
+          ports.appendChild(make("span",
+            (port.private || "?") + "/" + (port.type || "tcp") + " (interna)",
+            "pill internal"));
+        }
+      });
+      if (!shown) {
+        ports.appendChild(make("span", "sem portas publicadas", "muted"));
+      }
+      card.appendChild(ports);
+      elContainers.appendChild(card);
+    });
+  }
+
+  function showError(message) {
+    elErr.textContent = "falha ao consultar" + (message ? " (" + message + ")" : "");
+    elErr.hidden = false;
+  }
+
+  function clearError() {
+    elErr.hidden = true;
+    elErr.textContent = "";
+  }
+
+  function apply(data) {
+    items = Array.isArray(data.items) ? data.items : [];
+    containers = Array.isArray(data.containers) ? data.containers : [];
+
+    elCount.textContent = items.length + (items.length === 1 ? " porta" : " portas");
+    if (data.generated_at) {
+      var when = new Date(data.generated_at);
+      elGen.textContent = isNaN(when.getTime())
+        ? String(data.generated_at)
+        : "atualizado " + when.toLocaleTimeString();
+    }
+    renderRows();
+    renderContainers();
+  }
+
+  function load() {
+    if (paused) { return; }
+    fetch("/api/ports", { cache: "no-store" }).then(function (response) {
+      if (!response.ok) { throw new Error("HTTP " + response.status); }
+      return response.json();
+    }).then(function (data) {
+      clearError();
+      apply(data);
+    }).catch(function (error) {
+      showError(error && error.message ? error.message : "erro de rede");
+    });
+  }
+
+  elQuery.addEventListener("input", renderRows);
+  elToggle.addEventListener("click", function () {
+    paused = !paused;
+    elToggle.textContent = paused ? "Retomar" : "Pausar";
+    if (!paused) { load(); }
+  });
+
+  load();
+  window.setInterval(load, 5000);
+})();
+</script>
+</body>
+</html>
