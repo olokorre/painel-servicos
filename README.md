@@ -21,8 +21,9 @@ com `network_mode: host` e `pid: host`.
 - **Não funciona** em Docker Desktop, macOS ou Windows (não há `/proc` real do
   host nem sockets `AF_UNIX` do Docker).
 - Python 3.9+ (biblioteca padrão — sem pip, sem dependências).
-- Docker (opcional): necessário apenas para listar containers e atribuir portas
-  publicadas. Sem Docker, o painel mostra todas as portas com `container: null`.
+- Docker (opcional): necessário apenas para listar containers e atribuir
+  containers às portas (publicadas e rede host). Sem Docker, o painel mostra
+  todas as portas com `container: null`.
 - `CAP_SYS_PTRACE` **e** `CAP_DAC_READ_SEARCH`: para listar porta, processo e
   PID de serviços que rodam com **outro usuário (ex.: root)**. O motivo: o
   diretório `/proc/<pid>/fd` pertence ao dono do processo com modo `dr-x------`,
@@ -145,9 +146,14 @@ títulos, ícones e status) sobrevive a reinícios do serviço.
   outros usuários ficam invisíveis (PIDs, `comm`, `cmdline`). O painel precisa
   de `CAP_SYS_PTRACE` ou que o usuário `painel` tenha visão dos processos.
 - **Containers em rede host**: containers com `network_mode: host` não têm
-  porta publicada no Docker. A atribuição ao container é feita por fallback
-  via cgroup (`/proc/<pid>/cgroup`), o que resolve containers cujo PID seja
-  visível.
+  porta publicada no Docker. A atribuição é feita por consulta à API do Docker:
+  para cada container em execução o painel lê `State.Pid` em
+  `/containers/<id>/json` (PID no host, visível porque o painel roda com
+  `pid: host`) e expande a subárvore de processos desse PID (`/proc/<pid>/task/
+  <tid>/children`). O mapa de PIDs é recalculado no máximo uma vez a cada
+  `PANEL_PROBE_INTERVAL` (não a cada requisição). O cgroup
+  (`/proc/<pid>/cgroup`) continua como último fallback — útil na instalação
+  nativa fora de container, onde o namespace de cgroup é o do host.
 
 ## Operação
 
