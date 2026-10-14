@@ -135,30 +135,14 @@ a:hover { text-decoration:underline; }
     return (item && typeof item.http === "object" && item.http !== null) ? item.http : {};
   }
 
-  function validIcon(port, item) { var h = httpField(item); return h.has_icon && port > 0; }
-
-  function iconHTML(port, item, title) {
-    var h = httpField(item);
-    if (h.has_icon) {
-      return '<img src="/api/icon?port=' + port + '" alt="" onerror="this.onerror=null;this.parentNode.className+=\' init-fallback\';this.parentNode.textContent=\'' + (escapeHTML((title||' ')[0].toUpperCase()) || '?') + '\'" style="width:28px;height:28px;object-fit:contain;">';
-    }
-    var ch = (title || ' ')[0].toUpperCase() || '?';
-    return '<span class="init-fallback">' + escapeHTML(ch) + '</span>';
-  }
-
-  function escapeHTML(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-  function statusTag(status) {
-    if (!status) return "";
-    if (status === 200) return '<span class="status-tag green">OK</span>';
-    if (status === 401 || status === 403) return '<span class="status-tag login">pede login</span>';
-    return '<span class="status-tag warn">status ' + status + '</span>';
-  }
-
-  function httpStatusLabel(h) {
-    if (h.ok === null) return "";
-    if (h.ok === false) return "";
-    return statusTag(h.status);
+  function httpStatusNode(h) {
+    if (!h || h.ok !== true || !h.status) return null;
+    var sp = document.createElement("span");
+    sp.className = "status-tag";
+    if (h.status === 200) { sp.className += " green"; sp.textContent = "OK"; }
+    else if (h.status === 401 || h.status === 403) { sp.className += " login"; sp.textContent = "pede login"; }
+    else { sp.className += " warn"; sp.textContent = "status " + h.status; }
+    return sp;
   }
 
   function displayName(item) {
@@ -238,7 +222,8 @@ a:hover { text-decoration:underline; }
       sub.appendChild(make("span", item.port, "mono"));
       if (item.container) sub.appendChild(document.createTextNode(" " + item.container));
       else if (item.process) sub.appendChild(document.createTextNode(" " + item.process));
-      sub.appendChild(httpStatusLabel(h));
+      var st = httpStatusNode(h);
+      if (st) sub.appendChild(st);
       card.appendChild(sub);
 
       var btn = document.createElement("div");
@@ -360,7 +345,12 @@ a:hover { text-decoration:underline; }
     items = Array.isArray(data.items) ? data.items : [];
     containers = Array.isArray(data.containers) ? data.containers : [];
     updateStatus(data);
-    renderAll();
+    try {
+      renderAll();
+    } catch (e) {
+      showError("erro ao desenhar a interface: " + (e && e.message ? e.message : String(e)));
+      console.error(e);
+    }
   }
 
   function showError(msg) {
