@@ -1,13 +1,18 @@
 # painel-servicos
 
-Painel web mínimo que descobre e lista todas as portas TCP em estado `LISTEN`
-no host (porta, endereço, processo, PID, container), sem nenhuma configuração
-de portas ou IPs. Cada requisição ao endpoint `/api/ports` recalcula o
-inventário dinamicamente; o front-end atualiza a cada 5 segundos.
+Painel web que descobre todas as portas TCP em estado `LISTEN` no host e as
+organiza como um **hub indexador de serviços**. Na visão padrão (modo hub)
+mostra apenas os serviços que **respondem em HTTP**, com título da página
+e favicon (descobertos por sondagem em background via `127.0.0.1`). Um
+alternador revela o **modo técnico** com a tabela completa de portas, processos,
+PIDs, endereços e containers.
 
-Serviço novo (processo ou container) aparece sozinho, sem reiniciar nem editar
-nada. Pode rodar nativo no host (via systemd) ou em container Docker com
-`network_mode: host` e `pid: host`.
+Tudo é descoberto dinamicamente: nenhuma lista de portas, IP ou container é
+configurada no código. A sondagem HTTP é feita em background (thread daemon)
+e o resultado fica em cache (memória e, opcionalmente, disco). O front-end
+atualiza a cada 5 segundos. Serviço novo aparece sozinho, sem reiniciar nem
+editar nada. Pode rodar nativo no host (via systemd) ou em container Docker
+com `network_mode: host` e `pid: host`.
 
 ## Requisitos
 
@@ -67,6 +72,10 @@ read-only — editar no host e reiniciar o container é suficiente.
 | `PANEL_USER` | `admin` | Usuário do HTTP Basic Auth |
 | `PANEL_PASSWORD` | *(vazio)* | Senha do HTTP Basic Auth. Vazio = sem autenticação |
 | `PANEL_HTTPS_PORTS` | `443,8443,9443` | Portas que recebem scheme `https` (separadas por vírgula) |
+| `PANEL_PROBE_INTERVAL` | `60` | Segundos entre ciclos de sondagem HTTP em background |
+| `PANEL_PROBE_TTL` | `300` | Idade máxima (s) de um resultado para ser considerado fresco |
+| `PANEL_PROBE_TIMEOUT` | `2.0` | Timeout (float) por requisição de sondagem individual |
+| `PANEL_CACHE_FILE` | *(vazio)* | Arquivo de cache em disco (vazio = só memória; não sobrevive a reinício) |
 
 Todas as variáveis têm leitura tolerante: valor ausente, vazio ou inválido cai
 no default (nunca `ValueError` na subida).
@@ -78,6 +87,7 @@ no default (nunca `ValueError` na subida).
 | `/healthz` | GET | **Não** | `{"status":"ok","host":<hostname>}` — usado por healthcheck do systemd |
 | `/` | GET | Sim\* | `index.html` (front-end) — `text/html; charset=utf-8` |
 | `/api/ports` | GET | Sim\* | JSON com `generated_at`, `host`, `items[]`, `containers[]` |
+| `/api/icon?port=N` | GET | Sim\* | Favicon em cache do serviço da porta N (`image/*`) ou `404` |
 
 \* Exceto quando `PANEL_PASSWORD` está vazio (sem autenticação).
 
@@ -87,11 +97,17 @@ Todas as respostas levam `Cache-Control: no-store`.
 
 - `items[]`: `port`, `proto` (`"tcp"`), `family` (`"ipv4"`/`"ipv6"`),
   `address`, `exposed` (bool), `scheme` (`"http"`/`"https"`), `process`,
-  `pids[]`, `cmdline`, `container` (nome ou `null`).
+  `pids[]`, `cmdline`, `container` (nome ou `null`), **`http`** — objeto
+  com resultado da sondagem HTTP: `{ok: bool|null, status: int|null,
+  title: str|null, server: str|null, has_icon: bool, checked_at: str|null}`.
+  `ok=null` = ainda não sondado; `ok=false` = não responde HTTP;
+  `ok=true` = respondeu, com `title` extraído da tag `<title>`.
 - `containers[]`: `name`, `image`, `state`, `status`, `id`, `ports[{private,
   public, type}]`.
 
 Itens ordenados por porta. `exposed` é `false` apenas para `127.0.0.1`/`::1`.
+O icone de cada serviço é servido pelo próprio painel em `/api/icon?port=N`,
+apenas para portas em cache que passaram na validação de bytes mágicos.
 
 ## Segurança
 
@@ -108,6 +124,18 @@ Recomendações:
 - A autenticação usa HTTP Basic sobre conexão plain-text se exposta direto sem
   TLS — o hash via `hmac.compare_digest` protege contra timing attack, mas a
   senha viaja em Base64. Use sempre TLS quando exposto na rede.
+
+## Hub indexador de serviços
+
+O painel sonda cada porta em background via `127.0.0.1` (sempre loopback:
+a sondagem nunca sai do host). A cada ciclo as portas ausentes ou vencidas
+(`PANEL_PROBE_TTL`) são sondadas com uma requisição HTTP `GET /`. Se o
+serviço responde com HTML contendo `<title>`, o título é extraído e exibido
+no cartão. O favicon é descoberto pelo `<link rel="icon">` da página,
+baixado (max 256 KB) e servido pelo próprio painel em `/api/icon?port=N` —
+apenas para portas em cache que passaram na validação de bytes mágicos
+(ICO/PNG/GIF/SVG/WEBP). Se `PANEL_CACHE_FILE` for definido, o cache (com
+títulos, ícones e status) sobrevive a reinícios do serviço.
 
 ## Limitações
 

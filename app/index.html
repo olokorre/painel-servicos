@@ -3,203 +3,293 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VM Panel – lab-deploy</title>
+<title>Painel de servicos</title>
 <style>
-  :root {
-    --bg: #14171c;
-    --panel: #1b1f26;
-    --panel-2: #22272f;
-    --line: #2e343d;
-    --fg: #d7dce3;
-    --muted: #8b949e;
-    --accent: #4f9cf0;
-    --err: #7a1f1f;
-    --ok: #26323b;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  header {
-    padding: 16px 18px 10px;
-    border-bottom: 1px solid var(--line);
-    background: var(--panel);
-  }
-  h1 { margin: 0; font-size: 18px; font-weight: 600; }
-  h1 .sub { color: var(--muted); font-weight: 400; }
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 13px;
-  }
-  .badge {
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 1px 9px;
-    color: var(--fg);
-  }
-  button {
-    background: var(--panel-2);
-    color: var(--fg);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  button:hover { border-color: var(--accent); }
-  .err {
-    margin-top: 10px;
-    padding: 7px 11px;
-    border-radius: 6px;
-    background: var(--err);
-    color: #ffd9d9;
-    font-size: 13px;
-  }
-  main { padding: 16px 18px 40px; }
-  section { margin-bottom: 28px; }
-  h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
-  input[type=search] {
-    width: 100%;
-    max-width: 360px;
-    margin-bottom: 10px;
-    padding: 7px 11px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    color: var(--fg);
-    font-size: 13px;
-  }
-  input[type=search]:focus { outline: none; border-color: var(--accent); }
-  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
-  table { border-collapse: collapse; width: 100%; min-width: 760px; }
-  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: var(--panel); }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .local, .muted { color: var(--muted); }
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
-  .cname { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; margin-bottom: 4px; }
-  .state { color: var(--muted); font-weight: 400; font-size: 12px; }
-  .img { font-size: 12px; word-break: break-all; }
-  .ports { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .pill {
-    display: inline-block;
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 2px 9px;
-    font-size: 12px;
-  }
-  .pill.internal { color: var(--muted); }
+:root {
+  --bg: #14171c; --panel: #1b1f26; --panel-2: #22272f; --line: #2e343d;
+  --fg: #d7dce3; --muted: #8b949e; --accent: #4f9cf0; --err: #7a1f1f;
+  --ok: #1a5a2a; --warn: #5a4a1a; --green: #3fb950; --tag-bg: #26323b;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+header { padding:14px 18px 10px; border-bottom:1px solid var(--line); background:var(--panel); }
+h1 { margin:0; font-size:17px; font-weight:600; }
+h1 .sub { color:var(--muted); font-weight:400; font-size:13px; }
+.meta { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px; color:var(--muted); font-size:13px; }
+.badge { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:1px 9px; color:var(--fg); }
+button,.btn { background:var(--panel-2); color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:4px 11px; font-size:13px; cursor:pointer; white-space:nowrap; }
+button:hover,.btn:hover { border-color:var(--accent); }
+.err { margin-top:8px; padding:6px 10px; border-radius:6px; background:var(--err); color:#ffd9d9; font-size:13px; }
+main { padding:12px 18px 40px; }
+input[type=search] { width:100%; max-width:320px; padding:6px 10px; background:var(--panel); border:1px solid var(--line); border-radius:6px; color:var(--fg); font-size:13px; margin-bottom:10px; }
+input[type=search]:focus { outline:none; border-color:var(--accent); }
+.scroll { overflow-x:auto; border:1px solid var(--line); border-radius:8px; display:none; }
+.tech .scroll { display:block; }
+table { border-collapse:collapse; width:100%; min-width:780px; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+th { background:var(--panel-2); color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+tbody tr:hover { background:var(--panel); }
+.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.local { color:var(--muted); }
+.cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; display:none; }
+.tech + .tech-section .cards { display:grid; }
+.tech-section { display:none; }
+.hub-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:4px; }
+.card-head { display:flex; align-items:center; gap:8px; }
+.icon-box { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; background:var(--panel-2); overflow:hidden; }
+.icon-box img { width:28px; height:28px; object-fit:contain; }
+.init-fallback { background:var(--panel-2); color:var(--muted); font-weight:600; }
+.card-title { font-weight:600; font-size:15px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card-sub { font-size:12px; color:var(--muted); display:flex; gap:6px; flex-wrap:wrap; }
+.card-sub .mono { color:var(--fg); }
+.status-tag { display:inline-block; background:var(--tag-bg); border-radius:4px; padding:1px 6px; font-size:11px; margin-left:4px; }
+.status-tag.green { background:var(--ok); color:var(--green); }
+.status-tag.warn { background:var(--warn); }
+.status-tag.login { background:#3a1a1a; color:#ff6b6b; }
+.empty { color:var(--muted); font-size:14px; padding:20px 0; }
+.checking { color:var(--accent); font-size:12px; }
+.tech-badge { background:var(--tag-bg); border-radius:4px; padding:0 5px; font-size:11px; }
+.pill { display:inline-block; background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:2px 9px; font-size:12px; color:var(--accent); text-decoration:none; cursor:pointer; margin:2px; }
+.pill.internal { color:var(--muted); }
 </style>
 </head>
 <body>
 <header>
-  <h1>VM Panel <span class="sub">lab-deploy</span></h1>
+  <h1>Painel de servicos <span class="sub" id="hostname"></span></h1>
   <div class="meta">
-    <span id="gen">carregando…</span>
+    <span id="status">carregando...</span>
     <span id="count" class="badge">—</span>
-    <button id="toggle" type="button">Pausar</button>
+    <span id="checking" class="checking" hidden>verificando...</span>
+    <button id="btn-tech" type="button">Mostrar tudo (modo tecnico)</button>
+    <button id="btn-pause" type="button">Pausar</button>
   </div>
   <div id="err" class="err" hidden></div>
 </header>
-
 <main>
+  <input id="busca" type="search" placeholder="filtrar por titulo, porta, processo ou container" autocomplete="off">
+  <div id="hub-section">
+    <div id="hub-empty" class="empty" hidden>Nenhum servico respondeu em HTTP ainda — a sondagem roda a cada 60 s. Use 'Mostrar tudo' para ver as portas abertas.</div>
+    <div id="hub-cards" class="hub-cards"></div>
+  </div>
+  <div id="tech-section" class="tech-section">
+    <div class="scroll" id="tech-scroll"><table><thead><tr>
+      <th>Porta</th><th>Endereco</th><th>Exp.</th><th>Processo</th><th>PID</th><th>Container</th><th>HTTP</th><th>Abrir</th>
+    </tr></thead><tbody id="tech-rows"></tbody></table></div>
+  </div>
   <section>
-    <input id="q" type="search" placeholder="filtrar por porta, processo ou container" autocomplete="off">
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Porta</th><th>Endereço</th><th>Proto</th><th>Processo</th><th>PID</th><th>Container</th><th>Abrir</th>
-          </tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Containers Docker</h2>
-    <div id="containers" class="cards"></div>
+    <h2 style="font-size:14px;font-weight:600;margin:16px 0 10px;">Containers Docker</h2>
+    <div id="containers" class="hub-cards"></div>
   </section>
 </main>
-
 <script>
 (function () {
   "use strict";
-
-  var items = [];
-  var containers = [];
-  var paused = false;
-
-  var elRows = document.getElementById("rows");
+  var items = [], containers = [], paused = false, hostname = "";
+  var elHubCards = document.getElementById("hub-cards");
+  var elHubEmpty = document.getElementById("hub-empty");
+  var elTech = document.getElementById("tech-section");
+  var elTechRows = document.getElementById("tech-rows");
   var elContainers = document.getElementById("containers");
-  var elGen = document.getElementById("gen");
+  var elStatus = document.getElementById("status");
   var elCount = document.getElementById("count");
+  var elChecking = document.getElementById("checking");
   var elErr = document.getElementById("err");
-  var elQuery = document.getElementById("q");
-  var elToggle = document.getElementById("toggle");
+  var elBusca = document.getElementById("busca");
+  var elBtnPause = document.getElementById("btn-pause");
+  var elBtnTech = document.getElementById("btn-tech");
+  var elHostname = document.getElementById("hostname");
+
+  var techMode = localStorage.getItem("painel-tech") === "1";
+
+  function updateTechUI() {
+    elBtnTech.textContent = techMode ? "Voltar a grade (modo normal)" : "Mostrar tudo (modo tecnico)";
+    elTech.style.display = techMode ? "block" : "none";
+    document.body.classList.toggle("tech", techMode);
+  }
+  updateTechUI();
+  elBtnTech.addEventListener("click", function () {
+    techMode = !techMode;
+    localStorage.setItem("painel-tech", techMode ? "1" : "0");
+    updateTechUI();
+    if (techMode) renderTech();
+  });
 
   function make(tag, text, cls) {
-    var node = document.createElement(tag);
-    if (cls) { node.className = cls; }
-    node.textContent = (text === null || text === undefined) ? "" : String(text);
-    return node;
-  }
-
-  function schemeFor(port) {
-    return (port === 443 || port === 8443) ? "https" : "http";
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    n.textContent = (text === null || text === undefined) ? "" : String(text);
+    return n;
   }
 
   function openLink(port, scheme, label) {
     var a = document.createElement("a");
-    a.href = scheme + "://" + window.location.hostname + ":" + port + "/";
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = label || "Abrir";
-    return a;
+    a.href = (scheme || "http") + "://" + hostname + ":" + port + "/";
+    a.target = "_blank"; a.rel = "noopener";
+    a.textContent = label || "Abrir"; return a;
   }
 
-  function renderRows() {
-    var query = (elQuery.value || "").trim().toLowerCase();
-    elRows.textContent = "";
-    items.forEach(function (item) {
-      var haystack = [
-        item.port, item.process, item.container, item.address, item.family
-      ].join(" ").toLowerCase();
-      if (query && haystack.indexOf(query) === -1) { return; }
+  function httpField(item) {
+    return (item && typeof item.http === "object" && item.http !== null) ? item.http : {};
+  }
 
+  function validIcon(port, item) { var h = httpField(item); return h.has_icon && port > 0; }
+
+  function iconHTML(port, item, title) {
+    var h = httpField(item);
+    if (h.has_icon) {
+      return '<img src="/api/icon?port=' + port + '" alt="" onerror="this.onerror=null;this.parentNode.className+=\' init-fallback\';this.parentNode.textContent=\'' + (escapeHTML((title||' ')[0].toUpperCase()) || '?') + '\'" style="width:28px;height:28px;object-fit:contain;">';
+    }
+    var ch = (title || ' ')[0].toUpperCase() || '?';
+    return '<span class="init-fallback">' + escapeHTML(ch) + '</span>';
+  }
+
+  function escapeHTML(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function statusTag(status) {
+    if (!status) return "";
+    if (status === 200) return '<span class="status-tag green">OK</span>';
+    if (status === 401 || status === 403) return '<span class="status-tag login">pede login</span>';
+    return '<span class="status-tag warn">status ' + status + '</span>';
+  }
+
+  function httpStatusLabel(h) {
+    if (h.ok === null) return "";
+    if (h.ok === false) return "";
+    return statusTag(h.status);
+  }
+
+  function displayName(item) {
+    var h = httpField(item);
+    if (h.title) return h.title;
+    if (item.container) return item.container;
+    if (item.process) return item.process;
+    return "Porta " + item.port;
+  }
+
+  function renderHub() {
+    var query = (elBusca.value || "").trim().toLowerCase();
+    var seen = {}; // ports we already have a card for
+    var hubItems = [];
+    items.forEach(function (item) {
+      var h = httpField(item);
+      if (h.ok !== true) return;
+      var p = item.port;
+      if (seen[p]) return;
+      seen[p] = true;
+      if (query) {
+        var hs = [displayName(item), String(item.port), item.container, item.process].join(" ").toLowerCase();
+        if (hs.indexOf(query) === -1) return;
+      }
+      hubItems.push(item);
+    });
+    hubItems.sort(function (a, b) {
+      var ta = (httpField(a).title || "").toLowerCase();
+      var tb = (httpField(b).title || "").toLowerCase();
+      if (ta < tb) return -1; if (ta > tb) return 1;
+      return a.port - b.port;
+    });
+
+    elHubCards.textContent = "";
+    if (hubItems.length === 0) {
+      var hasOkNull = items.some(function (it) { return httpField(it).ok === null; });
+      elHubEmpty.hidden = false;
+      elHubEmpty.textContent = hasOkNull
+        ? "Nenhum servico respondeu em HTTP ainda — a sondagem roda a cada 60 s. Use 'Mostrar tudo' para ver as portas abertas."
+        : "Nenhum servico respondeu em HTTP. Use 'Mostrar tudo' para ver as portas abertas.";
+      return;
+    }
+    elHubEmpty.hidden = true;
+    hubItems.forEach(function (item) {
+      var h = httpField(item);
+      var title = h.title || displayName(item);
+      var card = document.createElement("div");
+      card.className = "card";
+      var head = document.createElement("div");
+      head.className = "card-head";
+      var ib = document.createElement("div");
+      ib.className = "icon-box";
+      if (h.has_icon) {
+        var img = document.createElement("img");
+        img.src = "/api/icon?port=" + item.port;
+        img.alt = "";
+        img.onerror = function () {
+          ib.textContent = (title || ' ')[0].toUpperCase() || '?';
+          ib.className += " init-fallback";
+          ib.onerror = function(){}
+        };
+        ib.appendChild(img);
+      } else {
+        ib.textContent = (title || ' ')[0].toUpperCase() || '?';
+        ib.className += " init-fallback";
+      }
+      head.appendChild(ib);
+      var dt = document.createElement("div");
+      dt.className = "card-title";
+      dt.title = title;
+      dt.appendChild(document.createTextNode(title));
+      head.appendChild(dt);
+      card.appendChild(head);
+
+      var sub = document.createElement("div");
+      sub.className = "card-sub";
+      sub.appendChild(make("span", item.port, "mono"));
+      if (item.container) sub.appendChild(document.createTextNode(" " + item.container));
+      else if (item.process) sub.appendChild(document.createTextNode(" " + item.process));
+      sub.appendChild(httpStatusLabel(h));
+      card.appendChild(sub);
+
+      var btn = document.createElement("div");
+      btn.className = "card-sub";
+      if (item.exposed) {
+        var a = openLink(item.port, item.scheme);
+        a.className = "mono";
+        btn.appendChild(a);
+      } else {
+        btn.appendChild(make("span", "so localhost", "local"));
+      }
+      card.appendChild(btn);
+      elHubCards.appendChild(card);
+    });
+  }
+
+  function renderTech() {
+    var query = (elBusca.value || "").trim().toLowerCase();
+    elTechRows.textContent = "";
+    items.forEach(function (item) {
+      var haystack = [item.port, item.process, item.container, item.address].join(" ").toLowerCase();
+      if (query && haystack.indexOf(query) === -1) return;
+      var h = httpField(item);
       var tr = document.createElement("tr");
       tr.appendChild(make("td", item.port, "mono"));
-      var wildcard = item.address === "0.0.0.0" || item.address === "::";
-      tr.appendChild(make("td", item.address || "—", wildcard ? "mono muted" : "mono"));
-      tr.appendChild(make("td", item.proto || "tcp"));
+      tr.appendChild(make("td", item.address || "—", "mono"));
+      tr.appendChild(make("td", item.exposed ? "sim" : "nao", item.exposed ? "" : "local"));
       tr.appendChild(make("td", item.process || "—"));
       tr.appendChild(make("td", (item.pids && item.pids.length) ? item.pids.join(", ") : "—", "mono"));
       tr.appendChild(make("td", item.container || "—"));
-
+      var htd = document.createElement("td");
+      if (h.ok === true) {
+        htd.appendChild(make("span", "200", "status-tag green"));
+        if (h.title) htd.appendChild(document.createTextNode(" " + h.title));
+      } else if (h.ok === false) {
+        htd.appendChild(make("span", "falha", "status-tag warn"));
+      } else if (h.ok === null && h.checked_at) {
+        htd.appendChild(make("span", "sondado", "tech-badge"));
+        if (h.title) htd.appendChild(document.createTextNode(" " + h.title));
+      } else {
+        htd.appendChild(make("span", "pendente", "tech-badge"));
+      }
+      tr.appendChild(htd);
       var cell = document.createElement("td");
       if (item.exposed) {
-        cell.appendChild(openLink(item.port, item.scheme || schemeFor(item.port)));
+        cell.appendChild(openLink(item.port, item.scheme));
       } else {
-        cell.appendChild(make("span", "só localhost", "local"));
+        cell.appendChild(make("span", "so localhost", "local"));
       }
       tr.appendChild(cell);
-      elRows.appendChild(tr);
+      elTechRows.appendChild(tr);
     });
   }
 
@@ -209,87 +299,93 @@
       elContainers.appendChild(make("p", "nenhum container encontrado", "muted"));
       return;
     }
-    containers.forEach(function (container) {
+    containers.forEach(function (c) {
       var card = document.createElement("div");
       card.className = "card";
-
       var head = document.createElement("div");
-      head.className = "cname";
-      head.appendChild(make("span", container.name));
-      head.appendChild(make("span", container.state || "", "state"));
+      head.className = "card-head";
+      head.appendChild(make("span", c.name, "card-title"));
+      head.appendChild(make("span", c.state || "", "tech-badge"));
       card.appendChild(head);
-
-      card.appendChild(make("div", container.image || "", "muted img"));
-      card.appendChild(make("div", container.status || "", "muted"));
-
-      var ports = document.createElement("div");
-      ports.className = "ports";
-      var list = container.ports || [];
-      var shown = false;
-      list.forEach(function (port) {
-        shown = true;
-        if (port.public) {
-          var link = openLink(port.public, schemeFor(port.public),
-                              port.public + "/" + (port.type || "tcp"));
-          link.className = "pill";
-          ports.appendChild(link);
+      card.appendChild(make("div", c.image || "", "card-sub muted"));
+      card.appendChild(make("div", c.status || "", "card-sub"));
+      var plist = document.createElement("div");
+      plist.className = "card-sub";
+      plist.style.marginTop = "4px";
+      (c.ports || []).forEach(function (p) {
+        var pill;
+        if (p.public) {
+          pill = openLink(p.public, null, p.public + "/" + (p.type || "tcp"));
+          pill.className = "pill";
         } else {
-          ports.appendChild(make("span",
-            (port.private || "?") + "/" + (port.type || "tcp") + " (interna)",
-            "pill internal"));
+          pill = make("span", (p.private || "?") + "/" + (p.type || "tcp") + " (interna)", "pill internal");
         }
+        plist.appendChild(pill);
       });
-      if (!shown) {
-        ports.appendChild(make("span", "sem portas publicadas", "muted"));
+      if (!(c.ports || []).length) {
+        plist.appendChild(make("span", "sem portas publicadas", "muted"));
       }
-      card.appendChild(ports);
+      card.appendChild(plist);
       elContainers.appendChild(card);
     });
   }
 
-  function showError(message) {
-    elErr.textContent = "falha ao consultar" + (message ? " (" + message + ")" : "");
-    elErr.hidden = false;
+  function updateStatus(data) {
+    hostname = data.host || "";
+    elHostname.textContent = hostname ? "– " + hostname : "";
+    document.title = "Painel de servicos" + (hostname ? " (" + hostname + ")" : "");
+
+    var total = items.length;
+    elCount.textContent = total + (total === 1 ? " porta" : " portas");
+
+    var httpOkPorts = [];
+    var seen = {};
+    items.forEach(function (it) {
+      var h = httpField(it);
+      if (h.ok === true && !seen[it.port]) { seen[it.port] = true; httpOkPorts.push(it.port); }
+    });
+    elStatus.textContent = httpOkPorts.length + " servico" + (httpOkPorts.length === 1 ? "" : "s") + ", " + total + " porta" + (total === 1 ? "" : "s") + " escutando";
+
+    var hasPending = items.some(function (it) { return httpField(it).ok === null; });
+    elChecking.hidden = !hasPending;
   }
 
-  function clearError() {
-    elErr.hidden = true;
-    elErr.textContent = "";
+  function renderAll() {
+    renderHub();
+    renderContainers();
+    if (techMode) renderTech();
   }
 
   function apply(data) {
     items = Array.isArray(data.items) ? data.items : [];
     containers = Array.isArray(data.containers) ? data.containers : [];
-
-    elCount.textContent = items.length + (items.length === 1 ? " porta" : " portas");
-    if (data.generated_at) {
-      var when = new Date(data.generated_at);
-      elGen.textContent = isNaN(when.getTime())
-        ? String(data.generated_at)
-        : "atualizado " + when.toLocaleTimeString();
-    }
-    renderRows();
-    renderContainers();
+    updateStatus(data);
+    renderAll();
   }
 
+  function showError(msg) {
+    elErr.textContent = "falha ao consultar" + (msg ? " (" + msg + ")" : "");
+    elErr.hidden = false;
+  }
+  function clearError() { elErr.hidden = true; elErr.textContent = ""; }
+
   function load() {
-    if (paused) { return; }
-    fetch("/api/ports", { cache: "no-store" }).then(function (response) {
-      if (!response.ok) { throw new Error("HTTP " + response.status); }
-      return response.json();
+    if (paused) return;
+    fetch("/api/ports", { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
     }).then(function (data) {
-      clearError();
-      apply(data);
-    }).catch(function (error) {
-      showError(error && error.message ? error.message : "erro de rede");
+      clearError(); apply(data);
+    }).catch(function (e) {
+      showError(e && e.message ? e.message : "erro de rede");
     });
   }
 
-  elQuery.addEventListener("input", renderRows);
-  elToggle.addEventListener("click", function () {
+  elBusca.addEventListener("input", renderAll);
+  elBtnPause.addEventListener("click", function () {
     paused = !paused;
-    elToggle.textContent = paused ? "Retomar" : "Pausar";
-    if (!paused) { load(); }
+    elBtnPause.textContent = paused ? "Retomar" : "Pausar";
+    if (!paused) load();
   });
 
   load();

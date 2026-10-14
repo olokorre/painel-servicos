@@ -1,3 +1,6 @@
+volumes:
+  painel-cache:
+
 services:
   painel-servicos:
     image: python:3.12-alpine
@@ -16,6 +19,11 @@ services:
       - PANEL_USER=${PANEL_USER:-admin}
       - PANEL_PASSWORD=${PANEL_PASSWORD:-}
       - PANEL_HTTPS_PORTS=${PANEL_HTTPS_PORTS:-443,8443,9443}
+      - PANEL_PROBE_INTERVAL=${PANEL_PROBE_INTERVAL:-60}
+      - PANEL_PROBE_TTL=${PANEL_PROBE_TTL:-300}
+      - PANEL_PROBE_TIMEOUT=${PANEL_PROBE_TIMEOUT:-2.0}
+      - PANEL_CACHE_FILE=${PANEL_CACHE_FILE:-/cache/cache.json}
     volumes:
       - ./app:/app:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - painel-cache:/cache

@@ -116,6 +116,11 @@ chown -R root:root "$INSTALL_DIR/app"
 chmod -R a+rX "$INSTALL_DIR/app"
 rm -rf "$INSTALL_DIR/app/__pycache__"
 
+# ---- diretorio de cache ----
+mkdir -p /var/cache/painel-servicos
+chown painel:painel /var/cache/painel-servicos
+chmod 0755 /var/cache/painel-servicos
+
 # ---- /etc/painel-servicos/env ----
 mkdir -p "$ENV_DIR"
 chmod 700 "$ENV_DIR"
@@ -129,6 +134,7 @@ if [ ! -f "$ENV_FILE" ]; then
     fi
     chown root:root "$ENV_FILE"
     chmod 600 "$ENV_FILE"
+    sed -i 's|^PANEL_CACHE_FILE=|PANEL_CACHE_FILE=/var/cache/painel-servicos/cache.json|' "$ENV_FILE"
     echo "/etc/painel-servicos/env criado a partir do .env.example."
 else
     echo "/etc/painel-servicos/env ja existe: nao sobrescrito."
